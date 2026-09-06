@@ -1,4 +1,4 @@
-
+import { Type, FunctionDeclaration } from "@google/genai";
 const apiKey = process.env.GOOGLE_BOOKS_API_KEY;
 
 export async function searchGoogleBooks({ query }: { query: string }) {
@@ -20,3 +20,20 @@ export async function searchGoogleBooks({ query }: { query: string }) {
     console.error("Errorsearching Google Books: ", error);
   }
 }
+
+export const bookSearchToolDeclaration: FunctionDeclaration = {
+  name: "searchGoogleBooks",
+  description:
+    "Search for books using Google Books API based on keywords, topics, or titles and return a list of relevant books. ",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      query: {
+        type: Type.STRING,
+        description:
+          "Search keywords. For example, 'science fiction', 'psychology', 'time management', 'Jane Austen', 'Wuthering Heights', etc.",
+      },
+    },
+    required: ["query"],
+  },
+};
