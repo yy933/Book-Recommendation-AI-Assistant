@@ -21,10 +21,10 @@ export async function searchGoogleBooks({ query }: { query: string }) {
   }
 }
 
-export const bookSearchToolDeclaration: FunctionDeclaration = {
+export const bookSearchDeclaration: FunctionDeclaration = {
   name: "searchGoogleBooks",
   description:
-    "Search for books using Google Books API based on keywords, topics, or titles and return a list of relevant books. ",
+    "Search for books using the Google Books API based on keywords, topics, or titles and return a list of recommended books.",
   parameters: {
     type: Type.OBJECT,
     properties: {
