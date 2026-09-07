@@ -23,6 +23,8 @@ export default function Home() {
     setMessages(newMessages);
     setInput("");
     setLoading(true);
+    const fallbackText =
+      "Sorry, I couldn't find any books for you. Please try again later.";
 
     try {
       const res = await fetch("/api/chat", {
@@ -32,14 +34,24 @@ export default function Home() {
       });
       const data = await res.json();
 
-      if (data.result) {
+      if (res.ok && data.result) {
         setMessages([
           ...newMessages,
           { role: "assistant", content: data.result },
         ]);
+      } else {
+        setMessages([
+          ...newMessages,
+          { role: "assistant", content: fallbackText },
+        ]);
       }
+     
     } catch (err) {
       console.error(err);
+      setMessages([
+        ...newMessages,
+        { role: "assistant", content: fallbackText },
+      ]);
     } finally {
       setLoading(false);
     }
