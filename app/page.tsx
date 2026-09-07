@@ -1,7 +1,7 @@
-// app/page.tsx
 "use client";
 
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
 
 interface Message {
   role: "user" | "assistant";
@@ -81,7 +81,35 @@ export default function Home() {
             <div
               className={`p-3.5 rounded-2xl max-w-lg shadow-sm text-sm leading-relaxed ${m.role === "user" ? "bg-blue-600 text-white rounded-br-xs" : "bg-slate-100 border border-slate-200 text-slate-800 rounded-bl-xs"}`}
             >
-              <p className="whitespace-pre-wrap">{m.content}</p>
+              <div className="prose prose-slate text-sm leading-relaxed max-w-none">
+                {" "}
+                <ReactMarkdown
+                  components={{
+                    a: ({ node, ...props }) => (
+                      <a
+                        {...props}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 underline hover:text-blue-800"
+                      />
+                    ),
+                    h3: ({ node, ...props }) => (
+                      <h3
+                        {...props}
+                        className="font-bold text-base mt-3 mb-1 text-slate-900"
+                      />
+                    ),
+                    ul: ({ node, ...props }) => (
+                      <ul
+                        {...props}
+                        className="list-disc pl-4 space-y-1 my-2"
+                      />
+                    ),
+                  }}
+                >
+                  {m.content}
+                </ReactMarkdown>
+              </div>
             </div>
           </div>
         ))}
