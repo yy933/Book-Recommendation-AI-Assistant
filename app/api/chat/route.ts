@@ -62,7 +62,7 @@ export async function POST(req: Request) {
 
       // Step 5: Send the updated conversation history back to Gemini for the final recommendation
       response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.6-flash",
         contents: updatedContents,
       });
     }
