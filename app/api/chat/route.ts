@@ -4,6 +4,7 @@ import { GoogleGenAI } from "@google/genai";
 import { searchGoogleBooks, bookSearchDeclaration } from "@/lib/tools";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const MODEL_NAME = "gemini-3.6-flash"
 
 export async function POST(req: Request) {
   try {
@@ -16,7 +17,7 @@ export async function POST(req: Request) {
 
     // Step 1: Generate initial response from Gemini
     let response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: MODEL_NAME,
       contents,
       config: {
         systemInstruction:
@@ -62,7 +63,7 @@ export async function POST(req: Request) {
 
       // Step 5: Send the updated conversation history back to Gemini for the final recommendation
       response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
+        model: MODEL_NAME,
         contents: updatedContents,
       });
     }
