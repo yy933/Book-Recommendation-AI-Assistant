@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { searchGoogleBooks, bookSearchDeclaration } from "@/lib/tools";
+import { SYSTEM_INSTRUCTIONS } from "@/lib/prompts";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const MODEL_NAME = "gemini-3.6-flash"
@@ -20,8 +21,7 @@ export async function POST(req: Request) {
       model: MODEL_NAME,
       contents,
       config: {
-        systemInstruction:
-          "You're a helpful assistant that recommends books based on user preferences. When a user asks for book recommendations, make sure to use `searchGoogleBooks` function to fetch relevant books from Google Books API.",
+        systemInstruction: SYSTEM_INSTRUCTIONS,
         tools: [
           {
             functionDeclarations: [bookSearchDeclaration],
