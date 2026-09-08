@@ -3,7 +3,10 @@ const apiKey = process.env.GOOGLE_BOOKS_API_KEY;
 
 export async function searchGoogleBooks({ query }: { query: string }) {
   try {
-    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=3${apiKey ? `&key=${apiKey}` : ""}`;
+    const cleanQuery = query.trim().replace(/^["']|["']$/g, "");
+
+    if (!cleanQuery) return { books: [] };
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(cleanQuery)}&maxResults=3${apiKey ? `&key=${apiKey}` : ""}`;
     const res = await fetch(url);
     const data = await res.json();
     if (!data.items) {
