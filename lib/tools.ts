@@ -3,7 +3,7 @@ const apiKey = process.env.GOOGLE_BOOKS_API_KEY;
 
 export async function searchGoogleBooks({ query }: { query: string }) {
   try {
-    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=3&langRestrict=en${apiKey ? `&key=${apiKey}` : ""}`;
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=3${apiKey ? `&key=${apiKey}` : ""}`;
     const res = await fetch(url);
     const data = await res.json();
     if (!data.items) {
@@ -24,14 +24,18 @@ export async function searchGoogleBooks({ query }: { query: string }) {
 export const bookSearchDeclaration: FunctionDeclaration = {
   name: "searchGoogleBooks",
   description:
-    "Search for books using the Google Books API based on keywords, topics, or titles and return a list of recommended books.",
+    "Search for books using the Google Books API based on keywords, topics, or titles and return a list of recommended books. Use concise keywords or official syntax (e.g., 'subject:fiction', 'intitle:dune'). Avoid long natural language sentences.",
   parameters: {
     type: Type.OBJECT,
     properties: {
       query: {
         type: Type.STRING,
         description:
-          "Search keywords. For example, 'science fiction', 'psychology', 'time management', 'Jane Austen', 'Wuthering Heights', etc.",
+          "Concise, targeted Google Books search query. Keep it under 3-4 words. Supports syntax like 'intitle:', 'inauthor:', 'subject:'. Example: 'beginner science fiction' or 'intitle:Project Hail Mary'. NEVER pass full conversational sentences." +
+          "Search keywords for the Google Books API. Use plain keywords for general topics (e.g. 'science fiction', 'time management'). " +
+          "When the user asks for books by a SPECIFIC AUTHOR, prefix with 'inauthor:' (e.g. 'inauthor:Jane Austen'). " +
+          "When the user asks for a SPECIFIC TITLE, prefix with 'intitle:' (e.g. 'intitle:Wuthering Heights'). " +
+          "When the user asks for a genre or subject category, you may use 'subject:' (e.g. 'subject:psychology').",
       },
     },
     required: ["query"],
