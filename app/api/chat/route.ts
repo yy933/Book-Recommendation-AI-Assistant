@@ -1,12 +1,21 @@
 import { NextResponse } from "next/server";
 import { ai } from "@/lib/gemini-client";
-import { searchGoogleBooks, bookSearchDeclaration } from "@/lib/tools";
+import {
+  searchGoogleBooks,
+  bookSearchDeclaration,
+  presentRecommendationsDeclaration,
+} from "@/lib/tools";
 import { SYSTEM_INSTRUCTIONS } from "@/lib/prompts";
 
 const MODEL_NAME = "gemini-3.5-flash-lite";
+const MAX_TOOL_ROUNDS = 2;
 
-const MAX_TOOL_ROUNDS = 2
-
+type Book = {
+  title: string;
+  authors?: string[];
+  description?: string;
+  infoLink?: string;
+};
 
 export async function POST(req: Request) {
   try {
@@ -22,7 +31,7 @@ export async function POST(req: Request) {
     const historyMessages = messages.slice(0, -1);
     const latestUserMessage = messages[messages.length - 1].content;
 
-    // format history messages
+    // Step 2: format history messages
     const history = historyMessages.map(
       (m: { role: string; content: string }) => ({
         role: m.role === "assistant" ? "model" : "user",
@@ -30,7 +39,7 @@ export async function POST(req: Request) {
       }),
     );
 
-    // Step 2: create chat session
+    // Step 3: create chat session
     const chat = ai.chats.create({
       model: MODEL_NAME,
       history,
@@ -38,17 +47,21 @@ export async function POST(req: Request) {
         systemInstruction: SYSTEM_INSTRUCTIONS,
         tools: [
           {
-            functionDeclarations: [bookSearchDeclaration],
+            functionDeclarations: [bookSearchDeclaration,  presentRecommendationsDeclaration],
           },
         ],
       },
     });
 
-    // Step 3: send the latest message to Chat
+    // Step 4: send the latest message to Chat(first Gemini API call)
     let response = await chat.sendMessage({ message: latestUserMessage });
 
-    // Step 4: check if the response contains a function call
-     let rounds = 0;
+    // Keep the latest search result for the index reference for presentRecommendations
+    let lastSearchResults: Book[] = [];
+    let finalMarkdown: string | null = null;
+
+    // Step 5: check if the response contains a function call
+    let rounds = 0;
     while (
       response.functionCalls &&
       response.functionCalls.length > 0 &&
@@ -62,20 +75,20 @@ export async function POST(req: Request) {
           call.args as { query: string },
         );
 
-        let processedResult;
-        if (Array.isArray(fullResult)) {
-          processedResult = fullResult.slice(0, 3).map((book: any) => ({
-            title: book.title,
-            authors: book.authors,
-            description: book.description
-              ? book.description.substring(0, 180) + "..."
-              : "",
-            infoLink: book.infoLink,
-          }));
-        } else {
-          processedResult = fullResult;
-        }
+        const processedResult: Book[] = Array.isArray(fullResult)
+          ? fullResult.slice(0, 3).map((book: any) => ({
+              title: book.title,
+              authors: book.authors,
+              description: book.description
+                ? book.description.substring(0, 180) + "..."
+                : "",
+              infoLink: book.infoLink,
+            }))
+          : [];
 
+        lastSearchResults = processedResult;
+
+        // Send the processed result back to the model as a function response (second time Gemini API call)
         response = await chat.sendMessage({
           message: [
             {
@@ -86,31 +99,49 @@ export async function POST(req: Request) {
             },
           ],
         });
-        console.log(
-          JSON.stringify(response.candidates?.[0]?.content?.parts, null, 2),
-        );
+      } else if (call.name === "presentRecommendations") {
+        const args = call.args as {
+          recommendations: { index: number; blurb: string }[];
+        };
+
+        const lines = args.recommendations
+          .map(({ index, blurb }) => {
+            const book = lastSearchResults[index];
+            if (!book) return null;
+
+            const author = book.authors?.length
+              ? book.authors.join(", ")
+              : "Unknown Author";
+
+            return `**${book.title}** by ${author}\n\n${blurb}\n\nMore info: ${book.infoLink}`;
+          })
+          .filter(Boolean);
+        finalMarkdown = lines.join("\n\n");
       } else {
-        
         break;
       }
     }
-     const finalText =
-       response.text ??
-       response.candidates?.[0]?.content?.parts
-         ?.filter((p: any) => p.text)
-         .map((p: any) => p.text)
-         .join("") ??
-       "";
-       console.log("=== FINAL TEXT ===", finalText);
+    const finalText =
+      finalMarkdown ??
+      response.text ??
+      response.candidates?.[0]?.content?.parts
+        ?.filter((p: any) => p.text)
+        .map((p: any) => p.text)
+        .join("") ??
+      "";
+
     return NextResponse.json({ result: finalText });
   } catch (error: any) {
     console.error(error);
-     if (error?.status === 429 || error?.message?.includes("RESOURCE_EXHAUSTED")) {
-    return NextResponse.json(
-      { error: "API quota exceeded. Please try again later." },
-      { status: 429 },
-    );
-  }
+    if (
+      error?.status === 429 ||
+      error?.message?.includes("RESOURCE_EXHAUSTED")
+    ) {
+      return NextResponse.json(
+        { error: "API quota exceeded. Please try again later." },
+        { status: 429 },
+      );
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

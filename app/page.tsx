@@ -45,7 +45,6 @@ export default function Home() {
           { role: "assistant", content: fallbackText },
         ]);
       }
-     
     } catch (err) {
       console.error(err);
       setMessages([

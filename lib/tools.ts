@@ -37,3 +37,36 @@ export const bookSearchDeclaration: FunctionDeclaration = {
     required: ["query"],
   },
 };
+
+export const presentRecommendationsDeclaration = {
+  name: "presentRecommendations",
+  description:
+    "Present the final book recommendations to the user. You MUST call this after searchGoogleBooks returns results. Do not write the final recommendation as plain text — always use this function.",
+  parameters: {
+    type: "OBJECT",
+    properties: {
+      recommendations: {
+        type: "ARRAY",
+        description:
+          "Up to 3 recommended books, each referencing a book from the search results by its index (0-based).",
+        items: {
+          type: "OBJECT",
+          properties: {
+            index: {
+              type: "NUMBER",
+              description:
+                "The 0-based index of the chosen book in the search results array.",
+            },
+            blurb: {
+              type: "STRING",
+              description:
+                "A 1-2 sentence reason why this book fits the user's request. Do NOT repeat the title or author here.",
+            },
+          },
+          required: ["index", "blurb"],
+        },
+      },
+    },
+    required: ["recommendations"],
+  },
+};
