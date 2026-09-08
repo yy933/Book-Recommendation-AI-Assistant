@@ -84,17 +84,18 @@ export async function POST(req: Request) {
           call.args as { query: string },
         );
         console.log("fullResult 型別:", Array.isArray(fullResult), fullResult);
-          const rawBooks = fullResult?.books ?? [];
+        const rawBooks = fullResult?.books ?? [];
 
-
-        const processedResult: Book[] = rawBooks.slice(0, 3).map((book: any) => ({
-              title: book.title,
-              authors: book.authors,
-              description: book.description
-                ? book.description.substring(0, 180) + "..."
-                : "",
-              link: book.link,
-            }));
+        const processedResult: Book[] = rawBooks
+          .slice(0, 3)
+          .map((book: any) => ({
+            title: book.title,
+            authors: book.authors,
+            description: book.description
+              ? book.description.substring(0, 180) + "..."
+              : "",
+            link: book.link,
+          }));
 
         lastSearchResults = processedResult;
 
@@ -129,6 +130,11 @@ export async function POST(req: Request) {
         const args = call.args as {
           recommendations: { index: number; blurb: string }[];
         };
+         if (!args.recommendations || args.recommendations.length === 0) {
+           finalMarkdown =
+             "Sorry, I couldn't find any books that match your request. Please try again with different keywords.";
+           break;
+         }
 
         const lines = args.recommendations
           .map(({ index, blurb }) => {
@@ -142,9 +148,8 @@ export async function POST(req: Request) {
             return `**${book.title}** by ${author}\n\n${blurb}\n\nMore info: [${book.title}](${book.link})`;
           })
           .filter(Boolean);
-        finalMarkdown = lines.join("\n\n");
-         break;
-       
+        finalMarkdown = lines.length > 0 ? lines.join("\n\n") : "Sorry, I couldn't find any books that match your request. Please try again with different keywords.";
+        break;
       } else {
         break;
       }

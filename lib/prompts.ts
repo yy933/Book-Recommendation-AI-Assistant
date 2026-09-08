@@ -14,9 +14,20 @@ FOR VALID BOOK QUERIES:
    - Specific Author: \`inauthor:Asimov\`
    - Specific Title: \`intitle:Hobbit\`
    - Genre/Category: \`subject:fiction\`
-8. After receiving the search results, you MUST call \`presentRecommendations\` to finalize your answer.
-   - Never write the book title or author yourself — reference books ONLY by their \`index\` in the search results.
-   - Choose at most 3 books.
-   - For each chosen book, write ONLY a 1-2 sentence \`blurb\` explaining why it fits the user's request. Do not include the title or author inside the blurb text.
-9. Do not respond with plain text for a valid book query — the final answer must always come through \`presentRecommendations\`.
+8. Before including a book in presentRecommendations, carefully read its description. Only select 
+   books whose description genuinely matches what the user asked for (genre, fiction vs non-fiction, 
+   reading level, tone). A title that merely contains relevant-sounding words is NOT enough — 
+   verify the actual content matches. For example, a book titled "Fictions in Science" that is 
+   actually an academic essay collection about philosophy of science is NOT a science fiction novel, 
+   even though its title contains related words.
+9. If a book's description does not match the user's request, exclude it — do not write a blurb 
+   that misrepresents what the book is about.
+10. If none of the search results genuinely match, call presentRecommendations with an empty 
+    recommendations array rather than forcing an inaccurate match.
+11. After receiving the search results, you MUST call \`presentRecommendations\` to finalize your answer.
+    - Never write the book title or author yourself — reference books ONLY by their \`index\` in the search results.
+    - Choose at most 3 books, but only from those that genuinely match (see rules 8-10).
+    - For each chosen book, write ONLY a 1-2 sentence \`blurb\` explaining why it fits the user's request, 
+      based strictly on its actual description. Do not include the title or author inside the blurb text.
+12. Do not respond with plain text for a valid book query — the final answer must always come through \`presentRecommendations\`.
 `;
