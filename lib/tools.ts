@@ -20,7 +20,8 @@ export async function searchGoogleBooks({ query }: { query: string }) {
     }));
     return { books };
   } catch (error) {
-    console.error("Errorsearching Google Books: ", error);
+    console.error("Error searching Google Books: ", error);
+     return { books: [] };
   }
 }
 

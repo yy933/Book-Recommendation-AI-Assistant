@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { ai } from "@/lib/gemini-client";
 import {
+  FunctionDeclaration,
+  Type,
+  FunctionCallingConfigMode,
+} from "@google/genai";
+import {
   searchGoogleBooks,
   bookSearchDeclaration,
   presentRecommendationsDeclaration,
@@ -8,13 +13,13 @@ import {
 import { SYSTEM_INSTRUCTIONS } from "@/lib/prompts";
 
 const MODEL_NAME = "gemini-3.5-flash-lite";
-const MAX_TOOL_ROUNDS = 2;
+const MAX_TOOL_ROUNDS = 4;
 
 type Book = {
   title: string;
   authors?: string[];
   description?: string;
-  infoLink?: string;
+  link?: string;
 };
 
 export async function POST(req: Request) {
@@ -47,7 +52,10 @@ export async function POST(req: Request) {
         systemInstruction: SYSTEM_INSTRUCTIONS,
         tools: [
           {
-            functionDeclarations: [bookSearchDeclaration,  presentRecommendationsDeclaration],
+            functionDeclarations: [
+              bookSearchDeclaration,
+              presentRecommendationsDeclaration,
+            ],
           },
         ],
       },
@@ -69,22 +77,24 @@ export async function POST(req: Request) {
     ) {
       rounds++;
       const call = response.functionCalls[0];
+      console.log(`[round ${rounds}] model called → ${call.name}`, call.args);
 
       if (call.name === "searchGoogleBooks") {
         const fullResult = await searchGoogleBooks(
           call.args as { query: string },
         );
+        console.log("fullResult 型別:", Array.isArray(fullResult), fullResult);
+          const rawBooks = fullResult?.books ?? [];
 
-        const processedResult: Book[] = Array.isArray(fullResult)
-          ? fullResult.slice(0, 3).map((book: any) => ({
+
+        const processedResult: Book[] = rawBooks.slice(0, 3).map((book: any) => ({
               title: book.title,
               authors: book.authors,
               description: book.description
                 ? book.description.substring(0, 180) + "..."
                 : "",
-              infoLink: book.infoLink,
-            }))
-          : [];
+              link: book.link,
+            }));
 
         lastSearchResults = processedResult;
 
@@ -98,6 +108,22 @@ export async function POST(req: Request) {
               },
             },
           ],
+          config: {
+            tools: [
+              {
+                functionDeclarations: [
+                  bookSearchDeclaration,
+                  presentRecommendationsDeclaration,
+                ],
+              },
+            ],
+            toolConfig: {
+              functionCallingConfig: {
+                mode: FunctionCallingConfigMode.ANY,
+                allowedFunctionNames: ["presentRecommendations"],
+              },
+            },
+          },
         });
       } else if (call.name === "presentRecommendations") {
         const args = call.args as {
@@ -113,10 +139,12 @@ export async function POST(req: Request) {
               ? book.authors.join(", ")
               : "Unknown Author";
 
-            return `**${book.title}** by ${author}\n\n${blurb}\n\nMore info: ${book.infoLink}`;
+            return `**${book.title}** by ${author}\n\n${blurb}\n\nMore info: [${book.title}](${book.link})`;
           })
           .filter(Boolean);
         finalMarkdown = lines.join("\n\n");
+         break;
+       
       } else {
         break;
       }
