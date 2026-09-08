@@ -34,38 +34,36 @@ export const bookSearchDeclaration: FunctionDeclaration = {
       query: {
         type: Type.STRING,
         description:
-          "Concise, targeted Google Books search query. Keep it under 3-4 words. Supports syntax like 'intitle:', 'inauthor:', 'subject:'. Example: 'beginner science fiction' or 'intitle:Project Hail Mary'. NEVER pass full conversational sentences." +
-          "Search keywords for the Google Books API. Use plain keywords for general topics (e.g. 'science fiction', 'time management'). " +
-          "When the user asks for books by a SPECIFIC AUTHOR, prefix with 'inauthor:' (e.g. 'inauthor:Jane Austen'). " +
-          "When the user asks for a SPECIFIC TITLE, prefix with 'intitle:' (e.g. 'intitle:Wuthering Heights'). " +
-          "When the user asks for a genre or subject category, you may use 'subject:' (e.g. 'subject:psychology').",
+          "Concise Google Books search query (2-4 words max). Use plain keywords for general topics (e.g. 'time management'). " +
+          "Prefix with 'inauthor:' for a specific author (e.g. 'inauthor:Jane Austen'), 'intitle:' for a specific title (e.g. 'intitle:Wuthering Heights'), " +
+          "or 'subject:' for a genre/category (e.g. 'subject:psychology'). Never pass full conversational sentences.",
       },
     },
     required: ["query"],
   },
 };
 
-export const presentRecommendationsDeclaration = {
+export const presentRecommendationsDeclaration: FunctionDeclaration = {
   name: "presentRecommendations",
   description:
-    "Present the final book recommendations to the user. You MUST call this after searchGoogleBooks returns results. Do not write the final recommendation as plain text — always use this function.",
+    "Present final book recommendations to the user. You MUST call this after searchGoogleBooks returns results. Do not write the final recommendation as plain text — always use this function.",
   parameters: {
-    type: "OBJECT",
+    type: Type.OBJECT,
     properties: {
       recommendations: {
-        type: "ARRAY",
+        type: Type.ARRAY,
         description:
           "Up to 3 recommended books, each referencing a book from the search results by its index (0-based).",
         items: {
-          type: "OBJECT",
+          type: Type.OBJECT,
           properties: {
             index: {
-              type: "NUMBER",
+              type: Type.NUMBER,
               description:
                 "The 0-based index of the chosen book in the search results array.",
             },
             blurb: {
-              type: "STRING",
+              type: Type.STRING,
               description:
                 "A 1-2 sentence reason why this book fits the user's request. Do NOT repeat the title or author here.",
             },

@@ -18,6 +18,5 @@ FOR VALID BOOK QUERIES:
    - Never write the book title or author yourself — reference books ONLY by their \`index\` in the search results.
    - Choose at most 3 books.
    - For each chosen book, write ONLY a 1-2 sentence \`blurb\` explaining why it fits the user's request. Do not include the title or author inside the blurb text.
-6. Do not respond with plain text for a valid book query — the final answer must always come through \`presentRecommendations\`.
-`; 
-
+9. Do not respond with plain text for a valid book query — the final answer must always come through \`presentRecommendations\`.
+`;
