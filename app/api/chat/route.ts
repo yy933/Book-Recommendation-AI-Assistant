@@ -30,6 +30,7 @@ type Book = {
   authors?: string[];
   description?: string;
   link?: string;
+  publishedDate?: string;
 };
 
 export async function POST(req: Request) {
@@ -101,6 +102,7 @@ export async function POST(req: Request) {
               ? book.description.substring(0, 180) + "..."
               : "",
             link: book.link,
+            publishedDate: book.publishedDate,
           });
         }
         console.log(

@@ -17,6 +17,7 @@ export async function searchGoogleBooks({ query }: { query: string }) {
       authors: item.volumeInfo.authors || ["Unknown Author"],
       description: item.volumeInfo.description || "No available description",
       link: item.volumeInfo.infoLink,
+      publishedDate: item.volumeInfo.publishedDate || null,
     }));
     return { books };
   } catch (error) {
