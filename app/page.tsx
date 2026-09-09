@@ -58,16 +58,18 @@ export default function Home() {
 
   return (
     <main className="max-w-2xl mx-auto p-4 flex flex-col h-screen">
-      <h1 className="text-2xl font-bold mb-4 mx-auto">
+      <h1 className="text-3xl font-bold mb-4 mx-auto text-orange-600">
         Your Book Recommendation Assistant{" "}
       </h1>
 
-      <div className="flex-1 overflow-y-auto border border-slate-200 p-4 rounded-xl space-y-4 mb-4 bg-white shadow-inner">
+      <div className="flex-1 overflow-y-auto border border-slate-200 p-4 rounded-xl space-y-4 mb-4 bg-orange-50 shadow-inner">
         {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-2">
+          <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-2 px-6">
             <span className="text-4xl">📖</span>
-            <p className="text-sm">
-              Enter the type of books you're looking for, e.g., "Recommend me
+            <p className="text-sm text-center">
+              Enter the type of books you're looking for.
+              <br/> 
+              e.g., "Recommend me
               some mystery novels" or "Books on time management"
             </p>
           </div>
