@@ -13,7 +13,17 @@ import {
 import { SYSTEM_INSTRUCTIONS } from "@/lib/prompts";
 
 const MODEL_NAME = "gemini-3.5-flash-lite";
-const MAX_TOOL_ROUNDS = 4;
+const MAX_TOOL_ROUNDS = 6;
+const MAX_SEARCH_ROUNDS = 3;
+
+const TOOLS = [
+  {
+    functionDeclarations: [
+      bookSearchDeclaration,
+      presentRecommendationsDeclaration,
+    ],
+  },
+];
 
 type Book = {
   title: string;
@@ -50,14 +60,7 @@ export async function POST(req: Request) {
       history,
       config: {
         systemInstruction: SYSTEM_INSTRUCTIONS,
-        tools: [
-          {
-            functionDeclarations: [
-              bookSearchDeclaration,
-              presentRecommendationsDeclaration,
-            ],
-          },
-        ],
+        tools: TOOLS,
       },
     });
 
@@ -66,10 +69,12 @@ export async function POST(req: Request) {
 
     // Keep the latest search result for the index reference for presentRecommendations
     let lastSearchResults: Book[] = [];
+    const seenLinks = new Set<string>();
     let finalMarkdown: string | null = null;
 
     // Step 5: check if the response contains a function call
     let rounds = 0;
+    let searchRounds = 0;
     while (
       response.functionCalls &&
       response.functionCalls.length > 0 &&
@@ -80,24 +85,28 @@ export async function POST(req: Request) {
       console.log(`[round ${rounds}] model called → ${call.name}`, call.args);
 
       if (call.name === "searchGoogleBooks") {
+        searchRounds++;
         const fullResult = await searchGoogleBooks(
           call.args as { query: string },
         );
-        console.log("fullResult 型別:", Array.isArray(fullResult), fullResult);
-        const rawBooks = fullResult?.books ?? [];
 
-        const processedResult: Book[] = rawBooks
-          .slice(0, 20)
-          .map((book: any) => ({
+        const rawBooks = fullResult?.books ?? [];
+        for (const book of rawBooks) {
+          if (!book.link || seenLinks.has(book.link)) continue;
+          seenLinks.add(book.link);
+          lastSearchResults.push({
             title: book.title,
             authors: book.authors,
             description: book.description
               ? book.description.substring(0, 180) + "..."
               : "",
             link: book.link,
-          }));
-
-        lastSearchResults = processedResult;
+          });
+        }
+        console.log(
+          `[search round ${searchRounds}] found ${lastSearchResults.length} books in total`,
+        );
+        const reachedSearchLimit = searchRounds >= MAX_SEARCH_ROUNDS;
 
         // Send the processed result back to the model as a function response (second time Gemini API call)
         response = await chat.sendMessage({
@@ -105,24 +114,21 @@ export async function POST(req: Request) {
             {
               functionResponse: {
                 name: call.name,
-                response: { result: processedResult },
+                response: { result: lastSearchResults },
               },
             },
           ],
           config: {
-            tools: [
-              {
-                functionDeclarations: [
-                  bookSearchDeclaration,
-                  presentRecommendationsDeclaration,
-                ],
-              },
-            ],
+            tools: TOOLS,
             toolConfig: {
-              functionCallingConfig: {
-                mode: FunctionCallingConfigMode.ANY,
-                allowedFunctionNames: ["presentRecommendations"],
-              },
+              functionCallingConfig: reachedSearchLimit
+                ? {
+                    mode: FunctionCallingConfigMode.ANY,
+                    allowedFunctionNames: ["presentRecommendations"],
+                  }
+                : {
+                    mode: FunctionCallingConfigMode.AUTO,
+                  },
             },
           },
         });
@@ -130,27 +136,44 @@ export async function POST(req: Request) {
         const args = call.args as {
           recommendations: { index: number; blurb: string }[];
         };
-         if (!args.recommendations || args.recommendations.length === 0) {
-           finalMarkdown =
-             "Sorry, I couldn't find any books that match your request. Please try again with different keywords.";
-           break;
-         }
+        if (!args.recommendations || args.recommendations.length === 0) {
+          finalMarkdown =
+            "Sorry, I couldn't find any books that match your request. Please try again with different keywords.";
+          break;
+        }
 
-        const lines = args.recommendations
-          .map(({ index, blurb }) => {
-            const book = lastSearchResults[index];
-            if (!book) return null;
+         const seenIndices = new Set<number>();
+         const dedupedRecommendations = args.recommendations.filter((rec) => {
+           if (seenIndices.has(rec.index)) return false;
+           seenIndices.add(rec.index);
+           return true;
+         });
 
-            const author = book.authors?.length
-              ? book.authors.join(", ")
-              : "Unknown Author";
+         const lines = dedupedRecommendations
+           .map(({ index, blurb }) => {
+             const book = lastSearchResults[index];
+             if (!book) return null;
 
-            return `**${book.title}** by ${author}\n\n${blurb}\n\nMore info: [${book.title}](${book.link})`;
-          })
-          .filter(Boolean);
-        finalMarkdown = lines.length > 0 ? lines.join("\n\n") : "Sorry, I couldn't find any books that match your request. Please try again with different keywords.";
+             const author = book.authors?.length
+               ? book.authors.join(", ")
+               : "Unknown Author";
+
+             return `**${book.title}** by ${author}\n\n${blurb}\n\nMore info: [${book.title}](${book.link})`;
+           })
+           .filter(Boolean);
+
+         const note =
+           dedupedRecommendations.length < 3
+             ? "\n\n_Note: I found fewer than 3 books that match your request._"
+             : "";
+
+        finalMarkdown =
+          lines.length > 0
+            ? lines.join("\n\n") + note
+            : "Sorry, I couldn't find any books that match your request. Please try again with different keywords.";
         break;
       } else {
+        console.warn(`Unexpected function call: ${call.name}`, call.args)
         break;
       }
     }
@@ -165,7 +188,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ result: finalText });
   } catch (error: any) {
-    console.error(error);
+    console.error("Route error: ", {message: error.message, cause: error.cause});
     if (
       error?.status === 429 ||
       error?.message?.includes("RESOURCE_EXHAUSTED")
@@ -175,6 +198,15 @@ export async function POST(req: Request) {
         { status: 429 },
       );
     }
+     if (
+       error?.cause?.code === "UND_ERR_SOCKET" ||
+       error?.message === "fetch failed"
+     ) {
+       return NextResponse.json(
+         { error: "Network error. Please try again later." },
+         { status: 503 },
+       );
+     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

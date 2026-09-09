@@ -6,7 +6,7 @@ export async function searchGoogleBooks({ query }: { query: string }) {
     const cleanQuery = query.trim().replace(/^["']|["']$/g, "");
 
     if (!cleanQuery) return { books: [] };
-    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(cleanQuery)}&maxResults=20${apiKey ? `&key=${apiKey}` : ""}`;
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(cleanQuery)}&maxResults=10${apiKey ? `&key=${apiKey}` : ""}`;
     const res = await fetch(url);
     const data = await res.json();
     if (!data.items) {
