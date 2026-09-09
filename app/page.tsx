@@ -78,7 +78,7 @@ export default function Home() {
             className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`p-3.5 rounded-2xl max-w-lg shadow-sm text-sm leading-relaxed ${m.role === "user" ? "bg-blue-600 text-white rounded-br-xs" : "bg-slate-100 border border-slate-200 text-slate-800 rounded-bl-xs"}`}
+              className={`p-3.5 rounded-2xl max-w-lg shadow-sm text-sm leading-relaxed ${m.role === "user" ? "bg-orange-600 text-white rounded-br-xs" : "bg-slate-100 border border-slate-200 text-slate-800 rounded-bl-xs"}`}
             >
               <div className="prose prose-slate text-sm leading-relaxed max-w-none">
                 {" "}
@@ -114,7 +114,8 @@ export default function Home() {
         ))}
         {loading && (
           <div className="flex items-center gap-2 text-sm text-slate-500 p-2 bg-slate-100 rounded-lg w-fit animate-pulse">
-            <span>Searching for books you might like...</span>
+            <span>🤔</span>
+            <span>Thinking......</span>
           </div>
         )}
       </div>
@@ -131,7 +132,7 @@ export default function Home() {
         <button
           onClick={sendMessage}
           disabled={loading || !input.trim()}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
+          className="bg-orange-600 hover:bg-orange-700 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
         >
           Send
         </button>
