@@ -31,6 +31,11 @@ type Book = {
   description?: string;
   link?: string;
   publishedDate?: string;
+  pageCount?: number;
+  categories?: string[];
+  averageRating?: number;
+  ratingsCount?: number;
+  publisher?: string;
 };
 
 export async function POST(req: Request) {
@@ -103,6 +108,10 @@ export async function POST(req: Request) {
               : "",
             link: book.link,
             publishedDate: book.publishedDate,
+            pageCount: book.pageCount,
+            categories: book.categories,
+            averageRating: book.averageRating,
+            ratingsCount: book.ratingsCount,
           });
         }
         console.log(
