@@ -87,7 +87,7 @@ export async function POST(req: Request) {
         const rawBooks = fullResult?.books ?? [];
 
         const processedResult: Book[] = rawBooks
-          .slice(0, 3)
+          .slice(0, 20)
           .map((book: any) => ({
             title: book.title,
             authors: book.authors,

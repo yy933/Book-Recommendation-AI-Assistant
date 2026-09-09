@@ -6,7 +6,7 @@ export async function searchGoogleBooks({ query }: { query: string }) {
     const cleanQuery = query.trim().replace(/^["']|["']$/g, "");
 
     if (!cleanQuery) return { books: [] };
-    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(cleanQuery)}&maxResults=3${apiKey ? `&key=${apiKey}` : ""}`;
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(cleanQuery)}&maxResults=20${apiKey ? `&key=${apiKey}` : ""}`;
     const res = await fetch(url);
     const data = await res.json();
     if (!data.items) {
@@ -28,7 +28,11 @@ export async function searchGoogleBooks({ query }: { query: string }) {
 export const bookSearchDeclaration: FunctionDeclaration = {
   name: "searchGoogleBooks",
   description:
-    "Search for books using the Google Books API based on keywords, topics, or titles and return a list of recommended books. Use concise keywords or official syntax (e.g., 'subject:fiction', 'intitle:dune'). Avoid long natural language sentences.",
+    "Search Google Books by keywords, topic, author, or title. Always use concise search terms (2-4 words), never full sentences. " +
+    "You may call this tool up to 3 times in a row with DIFFERENT search angles (e.g. different phrasing, sub-genre, or qualifier) " +
+    "to build a larger, more diverse pool of candidates before recommending — this is especially useful when the user's request " +
+    "has nuanced criteria (e.g. 'simple storyline', 'standalone novel') that a single query is unlikely to fully capture. " +
+    "Each call returns fresh results; the system automatically merges all results across calls into one candidate pool for you to choose from.",
   parameters: {
     type: Type.OBJECT,
     properties: {
@@ -37,7 +41,9 @@ export const bookSearchDeclaration: FunctionDeclaration = {
         description:
           "Concise Google Books search query (2-4 words max). Use plain keywords for general topics (e.g. 'time management'). " +
           "Prefix with 'inauthor:' for a specific author (e.g. 'inauthor:Jane Austen'), 'intitle:' for a specific title (e.g. 'intitle:Wuthering Heights'), " +
-          "or 'subject:' for a genre/category (e.g. 'subject:psychology'). Never pass full conversational sentences.",
+          "or 'subject:' for a genre/category — use subject: only as a single-word broad filter (e.g. 'subject:fiction'), never multi-word phrases. " +
+          "Never pass full conversational sentences, and avoid vague difficulty words like 'easy', 'beginner', 'simple', 'guide', 'quick', 'basic' — " +
+          "these dilute search precision and tend to surface instructional non-fiction books instead of actual novels.",
       },
     },
     required: ["query"],
@@ -47,14 +53,16 @@ export const bookSearchDeclaration: FunctionDeclaration = {
 export const presentRecommendationsDeclaration: FunctionDeclaration = {
   name: "presentRecommendations",
   description:
-    "Present final book recommendations to the user. You MUST call this after searchGoogleBooks returns results. Do not write the final recommendation as plain text — always use this function.",
+    "Present final book recommendations to the user. Must be called after searchGoogleBooks returns results — never write recommendations as plain text. " +
+    "The index refers to the position in the FULL cumulative candidate pool (across all searchGoogleBooks calls made so far), not just the most recent call.",
   parameters: {
     type: Type.OBJECT,
     properties: {
       recommendations: {
         type: Type.ARRAY,
         description:
-          "Up to 3 recommended books, each referencing a book from the search results by its index (0-based).",
+           "Up to 3 recommended books, each referencing a book from the cumulative search results by its 0-based index. " +
+          "It is acceptable to return fewer than 3, or an empty array, if fewer books genuinely match the user's request.",
         items: {
           type: Type.OBJECT,
           properties: {
