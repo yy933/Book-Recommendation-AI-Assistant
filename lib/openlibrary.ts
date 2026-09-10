@@ -53,6 +53,7 @@ export async function searchOpenLibrary({ query }: { query: string }) {
       })),
     );
 
+  
     return { books };
   } catch (error) {
     console.error("Error searching Open Library: ", error);

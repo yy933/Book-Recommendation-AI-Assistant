@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 
+
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -194,6 +195,7 @@ export default function Home() {
           Send
         </button>
       </div>
+
     </main>
   );
 }

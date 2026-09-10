@@ -2,12 +2,17 @@ import { Type, FunctionDeclaration } from "@google/genai";
 const apiKey = process.env.GOOGLE_BOOKS_API_KEY;
 
 export async function searchGoogleBooks({ query }: { query: string }) {
+  
   try {
     const cleanQuery = query.trim().replace(/^["']|["']$/g, "");
 
     if (!cleanQuery) return { books: [] };
     const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(cleanQuery)}&maxResults=10${apiKey ? `&key=${apiKey}` : ""}`;
     const res = await fetch(url);
+     if (!res.ok) {
+       console.error(`Google Books API error: ${res.status}`);
+       return { books: [] }; 
+     }
     const data = await res.json();
     if (!data.items) {
       return { books: [] };
@@ -27,9 +32,9 @@ export async function searchGoogleBooks({ query }: { query: string }) {
 }
 
 export const bookSearchDeclaration: FunctionDeclaration = {
-  name: "searchGoogleBooks",
+  name: "searchBooks",
   description:
-    "Search Google Books by keywords, topic, author, or title. Always use concise search terms (2-4 words), never full sentences. " +
+    "Search for books by keywords, topic, author, or title across multiple book databases. Always use concise search terms (2-4 words), never full sentences. " +
     "You may call this tool up to 3 times in a row with DIFFERENT search angles (e.g. different phrasing, sub-genre, or qualifier) " +
     "to build a larger, more diverse pool of candidates before recommending — this is especially useful when the user's request " +
     "has nuanced criteria (e.g. 'simple storyline', 'standalone novel') that a single query is unlikely to fully capture. " +
@@ -54,8 +59,8 @@ export const bookSearchDeclaration: FunctionDeclaration = {
 export const presentRecommendationsDeclaration: FunctionDeclaration = {
   name: "presentRecommendations",
   description:
-    "Present final book recommendations to the user. Must be called after searchGoogleBooks returns results — never write recommendations as plain text. " +
-    "The index refers to the position in the FULL cumulative candidate pool (across all searchGoogleBooks calls made so far), not just the most recent call.",
+    "Present final book recommendations to the user. Must be called after searchBooks returns results — never write recommendations as plain text. " +
+    "The index refers to the position in the FULL cumulative candidate pool (across all searchBooks calls made so far), not just the most recent call.",
   parameters: {
     type: Type.OBJECT,
     properties: {

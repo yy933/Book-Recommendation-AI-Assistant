@@ -11,6 +11,8 @@ import {
   presentRecommendationsDeclaration,
 } from "@/lib/tools";
 import { SYSTEM_INSTRUCTIONS } from "@/lib/prompts";
+import { searchOpenLibrary } from "@/lib/openlibrary";
+import type { Book } from "@/types";
 
 const MODEL_NAME = "gemini-3.5-flash-lite";
 const MAX_TOOL_ROUNDS = 6;
@@ -25,19 +27,41 @@ const TOOLS = [
   },
 ];
 
-type Book = {
-  title: string;
-  authors?: string[];
-  description?: string;
-  link?: string;
-  publishedDate?: string;
-  pageCount?: number;
-  categories?: string[];
-  averageRating?: number;
-  ratingsCount?: number;
-  publisher?: string;
-};
+function normalizeKey(title: string, authors: string[]): string {
+  const normalizedTitle = title
+    .toLowerCase()
+    .replace(/[^\w\s]/g, "")
+    .trim();
+  const normalizedAuthor = (authors[0] || "")
+    .toLowerCase()
+    .replace(/[^\w\s]/g, "")
+    .trim();
+  return `${normalizedTitle}|${normalizedAuthor}`;
+}
 
+async function searchAllSources(query: string) {
+  // Use Promise.allSettled to search both Google Books and Open Library concurrently
+  const results = await Promise.allSettled([
+    searchGoogleBooks({ query }),
+    searchOpenLibrary({ query }),
+  ]);
+
+  const allBooks: Book[] = [];
+
+  results.forEach((result, index) => {
+    const sourceName = index === 0 ? "Google Books" : "Open Library";
+    if (result.status === "fulfilled") {
+      const books = result.value?.books ?? [];
+      allBooks.push(
+        ...books.map((b: any) => ({ ...b, source: b.source || sourceName })),
+      );
+    } else {
+      console.error(`${sourceName} search failed:`, result.reason);
+    }
+  });
+
+  return allBooks;
+}
 export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
@@ -75,7 +99,7 @@ export async function POST(req: Request) {
 
     // Keep the latest search result for the index reference for presentRecommendations
     let lastSearchResults: Book[] = [];
-    const seenLinks = new Set<string>();
+    const seenKeys = new Set<string>();
     let finalMarkdown: string | null = null;
 
     // Step 5: check if the response contains a function call
@@ -88,23 +112,25 @@ export async function POST(req: Request) {
     ) {
       rounds++;
       const call = response.functionCalls[0];
+     
+
       console.log(`[round ${rounds}] model called → ${call.name}`, call.args);
 
-      if (call.name === "searchGoogleBooks") {
+      if (call.name === "searchBooks") {
         searchRounds++;
-        const fullResult = await searchGoogleBooks(
-          call.args as { query: string },
-        );
+         const { query } = call.args as { query: string };
+        const rawBooks = await searchAllSources(query);
 
-        const rawBooks = fullResult?.books ?? [];
         for (const book of rawBooks) {
-          if (!book.link || seenLinks.has(book.link)) continue;
-          seenLinks.add(book.link);
+          const dedupeKey = normalizeKey(book.title, book.authors || []);
+          if (seenKeys.has(dedupeKey)) continue;
+          seenKeys.add(dedupeKey);
+
           lastSearchResults.push({
             title: book.title,
             authors: book.authors,
             description: book.description
-              ? book.description.substring(0, 180) + "..."
+              ? book.description.substring(0, 150) + "..."
               : "",
             link: book.link,
             publishedDate: book.publishedDate,
@@ -112,8 +138,11 @@ export async function POST(req: Request) {
             categories: book.categories,
             averageRating: book.averageRating,
             ratingsCount: book.ratingsCount,
+            publisher: book.publisher,
+            source: book.source,
           });
         }
+
         console.log(
           `[search round ${searchRounds}] found ${lastSearchResults.length} books in total`,
         );
@@ -153,30 +182,30 @@ export async function POST(req: Request) {
           break;
         }
 
-         const seenIndices = new Set<number>();
-         const dedupedRecommendations = args.recommendations.filter((rec) => {
-           if (seenIndices.has(rec.index)) return false;
-           seenIndices.add(rec.index);
-           return true;
-         });
+        const seenIndices = new Set<number>();
+        const dedupedRecommendations = args.recommendations.filter((rec) => {
+          if (seenIndices.has(rec.index)) return false;
+          seenIndices.add(rec.index);
+          return true;
+        });
 
-         const lines = dedupedRecommendations
-           .map(({ index, blurb }) => {
-             const book = lastSearchResults[index];
-             if (!book) return null;
+        const lines = dedupedRecommendations
+          .map(({ index, blurb }) => {
+            const book = lastSearchResults[index];
+            if (!book) return null;
 
-             const author = book.authors?.length
-               ? book.authors.join(", ")
-               : "Unknown Author";
+            const author = book.authors?.length
+              ? book.authors.join(", ")
+              : "Unknown Author";
 
-             return `**${book.title}** by ${author}\n\n${blurb}\n\nMore info: [${book.title}](${book.link})`;
-           })
-           .filter(Boolean);
+            return `**${book.title}** by ${author}\n\n${blurb}\n\nMore info: [${book.title}](${book.link})`;
+          })
+          .filter(Boolean);
 
-         const note =
-           dedupedRecommendations.length < 3
-             ? "\n\n_Note: I found fewer than 3 books that match your request._"
-             : "";
+        const note =
+          dedupedRecommendations.length < 3
+            ? "\n\n_Note: I found fewer than 3 books that match your request._"
+            : "";
 
         finalMarkdown =
           lines.length > 0
@@ -184,7 +213,7 @@ export async function POST(req: Request) {
             : "Sorry, I couldn't find any books that match your request. Please try again with different keywords.";
         break;
       } else {
-        console.warn(`Unexpected function call: ${call.name}`, call.args)
+        console.warn(`Unexpected function call: ${call.name}`, call.args);
         break;
       }
     }
@@ -199,7 +228,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ result: finalText });
   } catch (error: any) {
-    console.error("Route error: ", {message: error.message, cause: error.cause});
+    console.error("Route error: ", {
+      message: error.message,
+      cause: error.cause,
+    });
     if (
       error?.status === 429 ||
       error?.message?.includes("RESOURCE_EXHAUSTED")
@@ -209,15 +241,15 @@ export async function POST(req: Request) {
         { status: 429 },
       );
     }
-     if (
-       error?.cause?.code === "UND_ERR_SOCKET" ||
-       error?.message === "fetch failed"
-     ) {
-       return NextResponse.json(
-         { error: "Network error. Please try again later." },
-         { status: 503 },
-       );
-     }
+    if (
+      error?.cause?.code === "UND_ERR_SOCKET" ||
+      error?.message === "fetch failed"
+    ) {
+      return NextResponse.json(
+        { error: "Network error. Please try again later." },
+        { status: 503 },
+      );
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
