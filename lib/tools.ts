@@ -1,35 +1,4 @@
 import { Type, FunctionDeclaration } from "@google/genai";
-const apiKey = process.env.GOOGLE_BOOKS_API_KEY;
-
-export async function searchGoogleBooks({ query }: { query: string }) {
-  
-  try {
-    const cleanQuery = query.trim().replace(/^["']|["']$/g, "");
-
-    if (!cleanQuery) return { books: [] };
-    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(cleanQuery)}&maxResults=10${apiKey ? `&key=${apiKey}` : ""}`;
-    const res = await fetch(url);
-     if (!res.ok) {
-       console.error(`Google Books API error: ${res.status}`);
-       return { books: [] }; 
-     }
-    const data = await res.json();
-    if (!data.items) {
-      return { books: [] };
-    }
-    const books = data.items.map((item: any) => ({
-      title: item.volumeInfo.title,
-      authors: item.volumeInfo.authors || ["Unknown Author"],
-      description: item.volumeInfo.description || "No available description",
-      link: item.volumeInfo.infoLink,
-      publishedDate: item.volumeInfo.publishedDate || null,
-    }));
-    return { books };
-  } catch (error) {
-    console.error("Error searching Google Books: ", error);
-     return { books: [] };
-  }
-}
 
 export const bookSearchDeclaration: FunctionDeclaration = {
   name: "searchBooks",
@@ -67,7 +36,7 @@ export const presentRecommendationsDeclaration: FunctionDeclaration = {
       recommendations: {
         type: Type.ARRAY,
         description:
-           "Up to 3 recommended books, each referencing a book from the cumulative search results by its 0-based index. " +
+          "Up to 3 recommended books, each referencing a book from the cumulative search results by its 0-based index. " +
           "It is acceptable to return fewer than 3, or an empty array, if fewer books genuinely match the user's request.",
         items: {
           type: Type.OBJECT,

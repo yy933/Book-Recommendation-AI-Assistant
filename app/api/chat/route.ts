@@ -1,17 +1,13 @@
 import { NextResponse } from "next/server";
 import { ai } from "@/lib/gemini-client";
+import { FunctionCallingConfigMode } from "@google/genai";
 import {
-  FunctionDeclaration,
-  Type,
-  FunctionCallingConfigMode,
-} from "@google/genai";
-import {
-  searchGoogleBooks,
   bookSearchDeclaration,
   presentRecommendationsDeclaration,
 } from "@/lib/tools";
 import { SYSTEM_INSTRUCTIONS } from "@/lib/prompts";
 import { searchOpenLibrary } from "@/lib/openlibrary";
+import { searchGoogleBooks } from "@/lib/googleBooks";
 import type { Book } from "@/types";
 
 const MODEL_NAME = "gemini-3.5-flash-lite";
@@ -112,13 +108,12 @@ export async function POST(req: Request) {
     ) {
       rounds++;
       const call = response.functionCalls[0];
-     
 
       console.log(`[round ${rounds}] model called → ${call.name}`, call.args);
 
       if (call.name === "searchBooks") {
         searchRounds++;
-         const { query } = call.args as { query: string };
+        const { query } = call.args as { query: string };
         const rawBooks = await searchAllSources(query);
 
         for (const book of rawBooks) {
