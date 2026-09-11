@@ -1,26 +1,26 @@
-// lib/__tests__/normalizeKey.test.ts
 import { normalizeKey } from "@/lib/normalizeKey"; 
+import { describe, it, expect } from "vitest";
 
 describe("normalizeKey", () => {
-  it("大小寫不同應視為相同", () => {
+  it("should treat uppercase and lowercase as the same book", () => {
     expect(normalizeKey("Norwegian Wood", ["Murakami"])).toBe(
       normalizeKey("norwegian wood", ["Murakami"]),
     );
   });
 
-  it("標點符號不同應視為相同", () => {
+  it("should treat different punctuation as the same book", () => {
     expect(normalizeKey("Norwegian Wood!", ["Murakami"])).toBe(
       normalizeKey("Norwegian Wood", ["Murakami"]),
     );
   });
 
-  it("不同作者應視為不同書", () => {
+  it("should treat different authors as different books", () => {
     expect(normalizeKey("Untitled", ["Author A"])).not.toBe(
       normalizeKey("Untitled", ["Author B"]),
     );
   });
 
-  it("沒有作者時不應該報錯", () => {
+  it("should not throw an error when there are no authors", () => {
     expect(() => normalizeKey("Some Title", [])).not.toThrow();
   });
 });
