@@ -2,12 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
-
-
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
+import type { Message } from "@/types";
 
 const SUGGESTIONS = [
   "🔍 Thriller & Mystery Novels",
@@ -195,7 +190,6 @@ export default function Home() {
           Send
         </button>
       </div>
-
     </main>
   );
 }

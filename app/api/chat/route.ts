@@ -8,7 +8,7 @@ import {
 import { SYSTEM_INSTRUCTIONS } from "@/lib/prompts";
 import { searchOpenLibrary } from "@/lib/openlibrary";
 import { searchGoogleBooks } from "@/lib/googleBooks";
-import type { Book } from "@/types";
+import type { Book, Message } from "@/types";
 
 const MODEL_NAME = "gemini-3.5-flash-lite";
 const MAX_TOOL_ROUNDS = 6;
@@ -73,12 +73,10 @@ export async function POST(req: Request) {
     const latestUserMessage = messages[messages.length - 1].content;
 
     // Step 2: format history messages
-    const history = historyMessages.map(
-      (m: { role: string; content: string }) => ({
-        role: m.role === "assistant" ? "model" : "user",
-        parts: [{ text: m.content }],
-      }),
-    );
+    const history = historyMessages.map((m: Message) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    }));
 
     // Step 3: create chat session
     const chat = ai.chats.create({

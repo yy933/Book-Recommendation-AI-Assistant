@@ -20,3 +20,9 @@ export type Book = {
   publisher?: string;
   source?: string;
 };
+
+export type Message = {
+  role: "user" | "assistant";
+  content: string;
+  timestamp?: number;
+};
