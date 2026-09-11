@@ -21,6 +21,11 @@ export async function searchGoogleBooks({ query }: { query: string }) {
       description: item.volumeInfo.description || "No available description",
       link: item.volumeInfo.infoLink,
       publishedDate: item.volumeInfo.publishedDate || null,
+      pageCount: item.volumeInfo.pageCount || null,
+      categories: item.volumeInfo.categories || [],
+      averageRating: item.volumeInfo.averageRating || null,
+      ratingsCount: item.volumeInfo.ratingsCount || null,
+      publisher: item.volumeInfo.publisher || "Unknown publisher",
     }));
     return { books };
   } catch (error) {
