@@ -8,6 +8,7 @@ import {
 import { SYSTEM_INSTRUCTIONS } from "@/lib/prompts";
 import { searchOpenLibrary } from "@/lib/openlibrary";
 import { searchGoogleBooks } from "@/lib/googleBooks";
+import { normalizeKey } from "@/lib/normalizeKey"; 
 import type { Book, Message } from "@/types";
 
 const MODEL_NAME = "gemini-3.5-flash-lite";
@@ -23,17 +24,7 @@ const TOOLS = [
   },
 ];
 
-function normalizeKey(title: string, authors: string[]): string {
-  const normalizedTitle = title
-    .toLowerCase()
-    .replace(/[^\w\s]/g, "")
-    .trim();
-  const normalizedAuthor = (authors[0] || "")
-    .toLowerCase()
-    .replace(/[^\w\s]/g, "")
-    .trim();
-  return `${normalizedTitle}|${normalizedAuthor}`;
-}
+
 
 async function searchAllSources(query: string) {
   // Use Promise.allSettled to search both Google Books and Open Library concurrently
