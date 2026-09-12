@@ -6,9 +6,8 @@ import {
   presentRecommendationsDeclaration,
 } from "@/lib/tools";
 import { SYSTEM_INSTRUCTIONS } from "@/lib/prompts";
-import { searchOpenLibrary } from "@/lib/openlibrary";
-import { searchGoogleBooks } from "@/lib/googleBooks";
-import { normalizeKey } from "@/lib/normalizeKey"; 
+import { searchAllSources } from "@/lib/searchAllSources";
+import { normalizeKey } from "@/lib/normalizeKey";
 import type { Book, Message } from "@/types";
 
 const MODEL_NAME = "gemini-3.5-flash-lite";
@@ -24,31 +23,6 @@ const TOOLS = [
   },
 ];
 
-
-
-async function searchAllSources(query: string) {
-  // Use Promise.allSettled to search both Google Books and Open Library concurrently
-  const results = await Promise.allSettled([
-    searchGoogleBooks({ query }),
-    searchOpenLibrary({ query }),
-  ]);
-
-  const allBooks: Book[] = [];
-
-  results.forEach((result, index) => {
-    const sourceName = index === 0 ? "Google Books" : "Open Library";
-    if (result.status === "fulfilled") {
-      const books = result.value?.books ?? [];
-      allBooks.push(
-        ...books.map((b: any) => ({ ...b, source: b.source || sourceName })),
-      );
-    } else {
-      console.error(`${sourceName} search failed:`, result.reason);
-    }
-  });
-
-  return allBooks;
-}
 export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
